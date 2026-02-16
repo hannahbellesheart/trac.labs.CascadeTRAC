@@ -1,6 +1,24 @@
-# TRAC SOFTWARE'S GITHUB COPILOT
+# GITHUB COPILOT CONFIGURATION
 
-This document provides comprehensive information about implementing and using GitHub Copilot across all environments.
+Complete guide to configuring GitHub Copilot including agents, skills, instructions, MCP servers, tools, prompt files, sessions, and cross-platform setup.
+
+> **💻 Looking for VSCode and Codespaces setup?** See [README-VSCODE.md](./README-VSCODE.md) for connecting local VSCode to codespaces and cross-platform development workflows.
+
+## TABLE OF CONTENTS
+
+- [File Locations & Default Configurations](#file-locations--default-configurations)
+- [Agents](#agents)
+- [Prompt Files](#prompt-files)
+- [Skills](#skills)
+- [Instructions and Rules](#instructions-and-rules)
+- [Hooks](#hooks)
+- [MCP Servers](#mcp-servers)
+- [Tool Sets](#tool-sets)
+- [Diagnostics](#diagnostics)
+- [Chat Settings](#chat-settings)
+- [Sessions](#sessions)
+- [Cross-Platform & Multi-Environment Workflows](#cross-platform--multi-environment-workflows)
+- [Complete Quick Reference](#complete-quick-reference)
 
 ## FILE LOCATIONS & DEFAULT CONFIGURATIONS
 
@@ -102,8 +120,6 @@ GitHub Copilot uses a hierarchical configuration system with the following prior
 ├── .agent.md                      # Agent instructions (searched up tree)
 └── .claude/                       # Alternative to .github for Claude
     └── skills/
-        └── skill-name/
-            └── SKILL.md
 ```
 
 **Repository-Level Configuration** (Custom - alternative to `.github/`)
@@ -114,7 +130,6 @@ GitHub Copilot uses a hierarchical configuration system with the following prior
 │   └── custom-agent.agent.md
 └── skills/                        # Custom skills location
     └── skill-name/
-        └── SKILL.md
 
 # To use .trac/ instead of .github/, set environment variable:
 # export COPILOT_CUSTOM_INSTRUCTIONS_DIRS="$PWD/.trac"
@@ -139,7 +154,6 @@ GitHub Copilot uses a hierarchical configuration system with the following prior
 │   └── trac-agent.agent.md
 └── skills/
     └── trac-skill/
-        └── SKILL.md
 
 # Repository-level custom directory
 /path/to/project/.trac/            # Project TRAC-specific config
@@ -148,7 +162,6 @@ GitHub Copilot uses a hierarchical configuration system with the following prior
 │   └── project-agent.agent.md
 └── skills/
     └── project-skill/
-        └── SKILL.md
 
 # Enable via environment variable (add to ~/.bashrc or ~/.zshrc):
 export COPILOT_CUSTOM_INSTRUCTIONS_DIRS="$HOME/.trac:$PWD/.trac"
@@ -228,17 +241,12 @@ description: Specialized agent for specific task domain
 tools:
   - view
   - edit
-  - create
   - bash
   - grep
 model: claude-sonnet-4
 target: vscode
 mcp-servers:
   server-name:
-    type: stdio
-    command: node
-    args: ["/path/to/server.js"]
-    tools: ["*"]
 ---
 
 # Custom Agent Instructions
@@ -277,8 +285,7 @@ excludeAgent: ["code-review"]
 {
   error: {
     code: "ERROR_CODE",
-    message: "Human readable message",
-    details: {}
+    message: "Human-readable message"
   }
 }
 ```
@@ -324,179 +331,91 @@ clinic doctor -- node app.js
 ```
 
 ## Common Patterns
-[Include debugging patterns and solutions]
-```
-
-**`~/.copilot/mcp-config.json`** (MCP Configuration)
-```json
-{
-  "mcpServers": {
-    "github": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["/path/to/github-mcp-server"],
-      "env": {
-        "GITHUB_TOKEN": "COPILOT_MCP_GITHUB_TOKEN"
-      },
-      "tools": ["*"]
-    },
-    "sentry": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-sentry"],
-      "env": {
-        "SENTRY_TOKEN": "COPILOT_MCP_SENTRY_TOKEN",
-        "SENTRY_ORG": "my-org"
-      },
-      "tools": ["list-issues", "get-issue", "list-projects"]
-    },
-    "notion": {
-      "type": "http",
-      "url": "https://api.notion-mcp.example.com",
-      "headers": {
-        "Authorization": "Bearer ${COPILOT_MCP_NOTION_TOKEN}"
-      },
-      "tools": ["*"]
-    }
-  }
-}
-```
-
-**`~/.copilot/config.json`** (CLI Configuration)
-```json
-{
-  "model": "claude-sonnet-4",
-  "theme": "dark",
-  "experimental": false,
-  "autoCompact": true,
-  "allowedDirectories": [
-    "/home/user/projects",
-    "/workspace"
-  ],
-  "defaultAgent": "custom-agent"
-}
-```
-
-**`.github/workflows/copilot-setup-steps.yml`** (Agent Setup)
-```yaml
-name: Copilot Setup Steps
-
-on:
-  workflow_dispatch:
-
-permissions:
-  id-token: write
-  contents: read
-
-jobs:
-  copilot-setup-steps:
-    runs-on: ubuntu-latest
-    environment: copilot
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      
-      - name: Install MCP dependencies
-        run: |
-          npm install -g uv pipx
-          pipx install mcp-server-tools
-      
-      - name: Configure Azure Auth
-        uses: azure/login@v1
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      
-      - name: Setup database
-        run: |
-          npm run db:migrate
-          npm run db:seed
+- Event listener leaks
+- Closure memory retention
+- Large object caching
 ```
 
 ### ENVIRONMENT VARIABLES
 
-**System Environment Variables**
-```bash
-# Custom instruction directories (CRITICAL for using non-standard paths)
-# Use this to enable .trac/ or any custom directory structure
-export COPILOT_CUSTOM_INSTRUCTIONS_DIRS="/path/to/custom:/another/path"
+**COPILOT_CUSTOM_INSTRUCTIONS_DIRS**
 
-# Examples:
-# Single custom directory (user-level)
+Critical environment variable for enabling custom configuration directories like `.trac/`.
+
+**Purpose**: Tell Copilot to look for configuration files in non-standard directories
+
+**Format**: Colon-separated list of absolute paths
+```bash
+export COPILOT_CUSTOM_INSTRUCTIONS_DIRS="/path1:/path2:/path3"
+```
+
+**Priority**: Left to right (leftmost = highest priority)
+
+**Common Patterns**:
+```bash
+# Personal TRAC config only
 export COPILOT_CUSTOM_INSTRUCTIONS_DIRS="$HOME/.trac"
 
-# Multiple directories (colon-separated, highest priority first)
-export COPILOT_CUSTOM_INSTRUCTIONS_DIRS="$HOME/.trac:$HOME/.copilot:/workspace/.trac"
-
-# Project-specific (use in project .envrc or run before copilot command)
+# Repository TRAC config only
 export COPILOT_CUSTOM_INSTRUCTIONS_DIRS="$PWD/.trac"
 
-# Combined personal + project
-export COPILOT_CUSTOM_INSTRUCTIONS_DIRS="$HOME/.trac:$PWD/.trac:$HOME/.copilot"
+# Both personal and repository (recommended)
+export COPILOT_CUSTOM_INSTRUCTIONS_DIRS="$HOME/.trac:$PWD/.trac"
 
-# XDG Base Directory support (Linux standard)
-export XDG_CONFIG_HOME="$HOME/.config"
-export XDG_DATA_HOME="$HOME/.local/share"
-export XDG_CACHE_HOME="$HOME/.cache"
-# When set, Copilot uses $XDG_CONFIG_HOME/copilot/ instead of ~/.copilot/
-
-# Copilot CLI settings
-export COPILOT_MODEL="claude-sonnet-4"
-export COPILOT_THEME="dark"
-
-# MCP secret prefix (repository secrets - set in GitHub Settings)
-COPILOT_MCP_GITHUB_TOKEN="ghp_..."
-COPILOT_MCP_SENTRY_TOKEN="sntrys_..."
-COPILOT_MCP_NOTION_TOKEN="secret_..."
+# Multiple custom locations
+export COPILOT_CUSTOM_INSTRUCTIONS_DIRS="$HOME/.trac:$HOME/.myconfig:$PWD/.trac"
 ```
 
-**Setting Up Custom Directories Permanently**
+**Setup Instructions**:
 
 ```bash
-# For Bash (add to ~/.bashrc)
-echo 'export COPILOT_CUSTOM_INSTRUCTIONS_DIRS="$HOME/.trac"' >> ~/.bashrc
+# === Bash (Linux, macOS, Git Bash on Windows) ===
+echo 'export COPILOT_CUSTOM_INSTRUCTIONS_DIRS="$HOME/.trac:$PWD/.trac"' >> ~/.bashrc
 source ~/.bashrc
 
-# For Zsh (add to ~/.zshrc)
-echo 'export COPILOT_CUSTOM_INSTRUCTIONS_DIRS="$HOME/.trac"' >> ~/.zshrc
+# === Zsh (macOS default, some Linux) ===
+echo 'export COPILOT_CUSTOM_INSTRUCTIONS_DIRS="$HOME/.trac:$PWD/.trac"' >> ~/.zshrc
 source ~/.zshrc
 
-# For Fish (add to ~/.config/fish/config.fish)
-echo 'set -x COPILOT_CUSTOM_INSTRUCTIONS_DIRS "$HOME/.trac"' >> ~/.config/fish/config.fish
-source ~/.config/fish/config.fish
+# === Fish ===
+set -Ux COPILOT_CUSTOM_INSTRUCTIONS_DIRS "$HOME/.trac:$PWD/.trac"
 
-# Per-project with direnv (create .envrc in project root)
-cat > .envrc << 'EOF'
-export COPILOT_CUSTOM_INSTRUCTIONS_DIRS="$PWD/.trac:$HOME/.trac"
-EOF
-direnv allow
+# === Windows PowerShell ===
+[System.Environment]::SetEnvironmentVariable('COPILOT_CUSTOM_INSTRUCTIONS_DIRS', "$env:USERPROFILE\.trac;$PWD\.trac", 'User')
+
+# === Verify ===
+echo $COPILOT_CUSTOM_INSTRUCTIONS_DIRS
 ```
 
-**GitHub Environment Secrets** (Settings > Environments > copilot)
-- `COPILOT_MCP_GITHUB_TOKEN` - GitHub API token
-- `COPILOT_MCP_SENTRY_TOKEN` - Sentry API token
-- `COPILOT_MCP_AZURE_CREDENTIALS` - Azure credentials
-- `COPILOT_MCP_NOTION_TOKEN` - Notion integration token
-- `COPILOT_MCP_SLACK_TOKEN` - Slack bot token
-- `COPILOT_MCP_*` - Any custom MCP server secrets
+**Important Notes**:
+- **Required** for `.trac/` or any non-`.github/` directory
+- `.github/` always works without env var (standard location)
+- Must be set in every shell/environment where you use Copilot
+- Use absolute paths or shell variables (`$HOME`, `$PWD`)
+- Windows: Use semicolon `;` separator instead of colon `:`
 
-### FILE NAMING CONVENTIONS
+**Other Environment Variables**:
+```bash
+# XDG directories (Linux standard)
+export XDG_CONFIG_HOME="$HOME/.config"     # Config files
+export XDG_DATA_HOME="$HOME/.local/share"  # Data files
+export XDG_CACHE_HOME="$HOME/.cache"       # Cache files
 
-**Agent Files**
-- Format: `[name].agent.md`
-- Location: `.github/agents/` or `~/.copilot/agents/`
-- Example: `code-reviewer.agent.md`, `test-generator.agent.md`
+# Copilot CLI preferences
+export COPILOT_MODEL="claude-sonnet-4"     # Default model
+export COPILOT_THEME="dark"                # CLI theme
+
+# MCP Secrets (set in GitHub repository settings, not shell)
+# COPILOT_MCP_GITHUB_TOKEN
+# COPILOT_MCP_AZURE_TOKEN
+# etc.
+```
+
+### FILE NAME CONVENTIONS
 
 **Instruction Files**
 - Repository-wide: `copilot-instructions.md`
-- Path-specific: `*.instructions.md` (with frontmatter)
+- Path-specific: `*.instructions.md` (in `.github/instructions/`)
 - Agent-specific: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`
 - Hidden: `.agent.md` (searched up directory tree)
 
@@ -698,306 +617,74 @@ EOF
 # If using direnv
 direnv allow
 
-# OR add to your shell startup file
+# OR add to your shell rc file
 echo 'export COPILOT_CUSTOM_INSTRUCTIONS_DIRS="$PWD/.trac:$HOME/.trac"' >> ~/.bashrc
 
 git add .trac .envrc
 git commit -m "Add TRAC Copilot configuration"
 ```
 
-**Initialize Both Standard and Custom (Belt and Suspenders)**
+**Initialize with Both Standard and Custom Directories**
 ```bash
-# Use both .github/ (standard, always works) and .trac/ (custom, requires env var)
-mkdir -p .github/{agents,skills,instructions,workflows}
+# Use .github/ for team config AND .trac/ for TRAC-specific
+mkdir -p .github/{agents,skills,instructions}
 mkdir -p .trac/{agents,skills}
 
-# Standard location (works without configuration)
+# Team configuration in .github/
 cat > .github/copilot-instructions.md << 'EOF'
-# Standard Copilot Instructions
-
-Basic project instructions here.
+# Team Copilot Instructions
+[Team-wide configuration here]
 EOF
 
-# TRAC-specific location (higher priority when env var set)
+# TRAC-specific in .trac/
 cat > .trac/copilot-instructions.md << 'EOF'
-# TRAC-Enhanced Copilot Instructions
-
-TRAC-specific enhanced instructions here.
-These take priority when COPILOT_CUSTOM_INSTRUCTIONS_DIRS is set.
+# TRAC-Specific Instructions
+[TRAC project configuration here]
 EOF
 
-cat > .envrc << 'EOF'
-export COPILOT_CUSTOM_INSTRUCTIONS_DIRS="$PWD/.trac:$HOME/.trac"
-EOF
+# Set environment variable
+echo 'export COPILOT_CUSTOM_INSTRUCTIONS_DIRS="$PWD/.trac"' >> ~/.bashrc
 
-git add .github .trac .envrc
+git add .github .trac
 git commit -m "Add Copilot configuration (standard + TRAC)"
 ```
 
-**Initialize Personal Copilot Config (Standard)**
-```bash
-# Setup standard personal config
-mkdir -p ~/.copilot/{agents,skills}
-cat > ~/.copilot/copilot-instructions.md << 'EOF'
-# Personal Copilot Instructions
-
-## My Preferences
-- [Your preferences]
-
-## Code Style
-- [Your style preferences]
-EOF
-
-# Setup basic MCP configuration
-cat > ~/.copilot/mcp-config.json << 'EOF'
-{
-  "mcpServers": {}
-}
-EOF
-```
-
-**Initialize Personal TRAC Config (Custom)**
-```bash
-# Setup custom TRAC personal config
-mkdir -p ~/.trac/{agents,skills}
-cat > ~/.trac/copilot-instructions.md << 'EOF'
-# Personal TRAC Copilot Instructions
-
-## My TRAC Preferences
-- TRAC-specific personal preferences
-- Custom TRAC workflows
-
-## TRAC Code Style
-- TRAC-specific style preferences
-EOF
-
-# Enable TRAC directory permanently
-echo 'export COPILOT_CUSTOM_INSTRUCTIONS_DIRS="$HOME/.trac:$HOME/.copilot"' >> ~/.bashrc
-source ~/.bashrc
-
-# Verify it's set
-echo $COPILOT_CUSTOM_INSTRUCTIONS_DIRS
-```
-
-**Using Copilot to Initialize** (Easiest method)
-```bash
-# Let Copilot create instructions via CLI
-copilot
-
-# In chat, prompt:
-# "Create a comprehensive .github/copilot-instructions.md file 
-#  for this project based on the codebase structure"
-
-# OR via coding agent with /init command
-# Assign agent to issue with description:
-# "/init - Initialize Copilot configuration for this repository"
-```
-
-**Validation Commands**
-
-**Check Current Configuration (Standard + Custom)**
-```bash
-# Check environment variable
-echo $COPILOT_CUSTOM_INSTRUCTIONS_DIRS
-
-# View active instructions (all locations)
-ls -la .github/copilot-instructions.md    # Standard repo
-ls -la .trac/copilot-instructions.md      # Custom repo (if using)
-ls -la ~/.copilot/copilot-instructions.md # Standard personal
-ls -la ~/.trac/copilot-instructions.md    # Custom personal (if using)
-
-# View agents (all locations)
-ls -la .github/agents/       # Standard repo
-ls -la .trac/agents/         # Custom repo (if using)
-ls -la ~/.copilot/agents/    # Standard personal
-ls -la ~/.trac/agents/       # Custom personal (if using)
-
-# View skills (all locations)
-ls -la .github/skills/       # Standard repo
-ls -la .trac/skills/         # Custom repo (if using)
-ls -la ~/.copilot/skills/    # Standard personal
-ls -la ~/.trac/skills/       # Custom personal (if using)
-
-# View MCP config
-cat ~/.copilot/mcp-config.json
-cat ~/.trac/mcp-config.json  # If using custom location
-
-# Check CLI config
-cat ~/.copilot/config.json
-cat ~/.trac/config.json      # If using custom location
-
-# Find all copilot instruction files
-find . -name "copilot-instructions.md" 2>/dev/null
-find ~ -name "copilot-instructions.md" 2>/dev/null
-```
-
-**Test Configuration** (CLI)
-```bash
-# Start Copilot and check what's loaded
-copilot
-
-# In chat, use commands:
-# /session              # View session info and loaded config
-# /context              # View token usage and context
-# /mcp show             # View MCP servers (if configured)
-```
-
-**Repository Configuration Checklist (Standard `.github/`)**
-- [ ] `.github/copilot-instructions.md` exists with build/test commands
-- [ ] `.github/agents/` directory exists (if using custom agents)
-- [ ] `.github/skills/` directory exists (if using skills)
-- [ ] `.github/workflows/copilot-setup-steps.yml` exists (if using MCP)
-- [ ] GitHub environment `copilot` exists with secrets (if using MCP)
-- [ ] MCP secrets prefixed with `COPILOT_MCP_`
-- [ ] Instructions include project structure and conventions
-- [ ] Instructions include known issues and workarounds
-- [ ] Files committed to git and pushed to remote
-
-**Repository Configuration Checklist (Custom `.trac/`)**
-- [ ] `.trac/copilot-instructions.md` exists with TRAC-specific instructions
-- [ ] `.trac/agents/` directory exists (if using TRAC agents)
-- [ ] `.trac/skills/` directory exists (if using TRAC skills)
-- [ ] `COPILOT_CUSTOM_INSTRUCTIONS_DIRS` environment variable set
-- [ ] `.envrc` file created with correct export statement (if using direnv)
-- [ ] Environment variable added to shell startup file (~/.bashrc, ~/.zshrc)
-- [ ] Files committed to git and pushed to remote
-- [ ] Team members informed about required environment variable
-
-**Personal Configuration Checklist (Standard `~/.copilot/`)**
-- [ ] `~/.copilot/` directory exists
-- [ ] `~/.copilot/config.json` exists (created automatically by CLI)
-- [ ] `~/.copilot/copilot-instructions.md` exists with personal preferences
-- [ ] `~/.copilot/mcp-config.json` exists (if using MCP locally)
-- [ ] `~/.copilot/agents/` directory exists (if using personal agents)
-- [ ] `~/.copilot/skills/` directory exists (if using personal skills)
-
-**Personal Configuration Checklist (Custom `~/.trac/`)**
-- [ ] `~/.trac/` directory exists
-- [ ] `~/.trac/copilot-instructions.md` exists with TRAC personal preferences
-- [ ] `~/.trac/agents/` directory exists (if using personal TRAC agents)
-- [ ] `~/.trac/skills/` directory exists (if using personal TRAC skills)
-- [ ] `COPILOT_CUSTOM_INSTRUCTIONS_DIRS` includes `$HOME/.trac`
-- [ ] Environment variable persists across shell sessions
-- [ ] Tested with `echo $COPILOT_CUSTOM_INSTRUCTIONS_DIRS`
-
 ### HIDDEN FILES & SYSTEM FILES
 
-**Copilot Working Files** (Do not modify manually)
+Files created and managed automatically by Copilot that you typically shouldn't modify directly.
+
+**Session State Files** (`~/.copilot/session-state/[session-id]/`)
 ```
-~/.copilot/
-├── .copilot.lock              # Lock file for concurrent sessions
-├── session-state/             # Active and past session states
-│   ├── [session-id]/
-│   │   ├── state.json         # Session state data
-│   │   ├── plan.md            # Current plan (if in plan mode)
-│   │   ├── files/             # Session artifacts
-│   │   └── .checkpoints/      # Session checkpoints
-│   └── .active                # Currently active session marker
-├── logs/                      # CLI operation logs
-│   ├── copilot.log
-│   ├── mcp-[server].log
-│   └── [date].log
-├── cache/                     # Cached data
-│   ├── models.json            # Available models cache
-│   ├── completions/           # Completion cache
-│   └── embeddings/            # Embedding cache
-└── .trusted-dirs              # List of trusted directories
+session-state/
+├── [session-id]/
+│   ├── state.json             # Session metadata
+│   ├── plan.md               # Current implementation plan
+│   ├── files/                # Session artifacts
+│   │   ├── output.txt
+│   │   └── data.json
+│   └── bash/                 # Bash session state
+│       └── [session-id].json
 ```
 
-**IDE-Specific Files**
+**Log Files** (`~/.copilot/logs/`)
 ```
-# VS Code
-.vscode/
-├── settings.json              # May contain Copilot settings
-└── extensions/                # Extension storage
-    └── github.copilot/
-        ├── cache/
-        └── state/
-
-# JetBrains
-.idea/
-├── copilot/                   # Copilot plugin data
-└── workspace.xml              # May contain Copilot settings
-
-# Xcode
-*.xcodeproj/
-└── xcuserdata/
-    └── [user].xcuserdatad/
-        └── copilot/           # Copilot data
+logs/
+├── copilot.log               # Main CLI logs
+├── mcp-[server-name].log     # MCP server logs
+└── [date]/                   # Daily log archives
 ```
 
-**Git Integration Files**
+**Cache Files** (`~/.copilot/cache/`)
 ```
-.git/
-├── hooks/                     # Can contain Copilot-generated hooks
-│   ├── pre-commit            # Copilot can help create these
-│   ├── pre-push
-│   └── commit-msg
-└── copilot/                   # Copilot git metadata (if used)
+cache/
+├── model-responses/          # Cached LLM responses
+├── file-analysis/            # Analyzed file metadata
+└── .cache.db                 # Cache database
 ```
 
-**Temporary & Cache Files** (Safe to delete)
-- `~/.copilot/cache/*` - Cached model responses and embeddings
-- `~/.copilot/logs/*` - Historical log files (keep recent for debugging)
-- `~/.copilot/session-state/[old-sessions]/` - Completed session states
-- IDE temporary files in workspace `.vscode/` or `.idea/`
-
-**Files to Include in `.gitignore`**
-```gitignore
-# Personal Copilot state (NEVER commit these)
-.copilot-local/
-.claude-local/
-
-# IDE-specific Copilot data (NEVER commit)
-.vscode/extensions/github.copilot/
-.idea/copilot/
-
-# Session artifacts generated in repo (NEVER commit)
-copilot-session-*/
-
-# Personal config if accidentally placed in repo (NEVER commit)
-~/.copilot/
-~/.claude/
-~/.trac/
-
-# Note: DO commit these repo-level configs:
-# .github/copilot-instructions.md - YES, commit
-# .github/agents/ - YES, commit
-# .github/skills/ - YES, commit
-# .trac/copilot-instructions.md - YES, commit if using custom dirs
-# .trac/agents/ - YES, commit if using custom dirs
-# .envrc - YES, commit if using direnv with COPILOT_CUSTOM_INSTRUCTIONS_DIRS
+**Working Files** (Temporary, auto-deleted)
 ```
-
-**Hidden Agent Instruction Files** (Searched up directory tree)
-```
-./AGENTS.md                    # Current directory
-./CLAUDE.md                    # Current directory  
-./GEMINI.md                    # Current directory
-./.agent.md                    # Current directory
-../.agent.md                   # Parent directory (searched up)
-../../AGENTS.md                # Parent's parent (search continues)
-```
-
-**Environment-Specific Files**
-```
-# Docker/Devcontainer
-.devcontainer/
-├── devcontainer.json          # May specify Copilot extensions
-└── copilot-setup.sh           # Custom setup script
-
-# GitHub Codespaces
-.devcontainer/
-└── devcontainer.json          # Copilot pre-installed in Codespaces
-
-# CI/CD
-.github/workflows/
-└── copilot-*.yml              # Copilot-related workflows
-```
-
-**Backup Files** (Created by Copilot during edits)
-```
-# Automatic backups (some IDEs)
+# Backup files (some IDEs)
 file.ts.copilot-backup
 file.ts~
 
@@ -1498,12 +1185,6 @@ Tools and commands for monitoring and troubleshooting Copilot.
 - Check git status before agent commits
 - Review draft PRs before merging
 
-**MCP Diagnostics**
-- Check MCP server startup in coding agent session logs
-- Verify tools are listed after server initialization
-- Ensure secrets are properly configured with `COPILOT_MCP_` prefix
-- Test MCP configuration by assigning agent to test issue
-
 ## CHAT SETTINGS
 
 Configuration options for GitHub Copilot Chat across environments.
@@ -1698,680 +1379,37 @@ copilot --agent=name       # Start with specific custom agent
 - `Shift+Tab`: Toggle plan mode
 
 **Delegation to Coding Agent**
-```bash
-/delegate [task description]
-& [task description]
-```
-- Pushes session to GitHub coding agent
-- Creates new branch and draft PR
-- Preserves all context
-- Agent works in background
-- Can resume locally with `/resume`
+- `/delegate [task]` or `& [task]`: Send task to coding agent
+- Creates GitHub issue and assigns coding agent
+- Agent works in cloud with full repo access
+- Returns results as PR
 
 ## CROSS-PLATFORM & MULTI-ENVIRONMENT WORKFLOWS
 
-Working seamlessly across different environments (local Windows, GitHub Codespaces, remote Linux, etc.) with consistent Copilot configuration.
+Working seamlessly with GitHub Copilot across different environments (local Windows, GitHub Codespaces, remote Linux, etc.) with consistent configuration.
 
-### 📖 SECTION NAVIGATION
+> **💻 For detailed VSCode and Codespaces setup**, see [README-VSCODE.md](./README-VSCODE.md)
 
-**If you are...** → **Go to...**
-
-| Your Situation | Recommended Section |
-|----------------|---------------------|
-| **Brand new to Codespaces** | [COMPLETE BEGINNER'S QUICK START](#complete-beginners-quick-start-5-minutes) (5 min setup) |
-| **Want to understand the concept** | [UNDERSTANDING: WHAT'S ACTUALLY HAPPENING?](#understanding-whats-actually-happening) |
-| **Need to install Codespaces extension** | [CONNECTING LOCAL VSCODE TO CODESPACES - Step 1](#step-1-install-required-extension-one-time-setup) |
-| **Want detailed step-by-step connection guide** | [CONNECTING LOCAL VSCODE TO CODESPACES](#connecting-local-vscode-to-codespaces) |
-| **Need to sync Copilot config across environments** | [SETUP APPROACH 1: REPOSITORY CONFIG ONLY](#setup-approach-1-repository-config-only-easiest) |
-| **Want to sync personal preferences too** | [SETUP APPROACH 2: PERSONAL CONFIG SYNC](#setup-approach-2-personal-config-sync-advanced) |
-| **Looking for daily workflow examples** | [COMMON WORKFLOWS: LOCAL VSCODE + CODESPACES](#common-workflows-local-vscode--codespaces) |
-| **Something not working** | [TROUBLESHOOTING](#troubleshooting-cross-platform-issues) OR [FAQ](#frequently-asked-questions-faq) |
-| **Want best practices** | [BEST PRACTICES FOR HYBRID WORKFLOW](#best-practices-for-hybrid-workflow) |
-| **Need quick reference** | [TIPS FOR EFFICIENT CODESPACES USE](#tips-for-efficient-codespaces-use) |
-
-### OVERVIEW: YOUR DEVELOPMENT ENVIRONMENT OPTIONS
-
-**You Have THREE Main Ways to Work on Your Code:**
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                     YOUR DEVELOPMENT OPTIONS                        │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  1️⃣ LOCAL WINDOWS                                                  │
-│     VSCode installed on your Windows machine                       │
-│     Files stored: C:\Users\username\repos\                         │
-│     Copilot config: C:\Users\username\.copilot\                    │
-│     ✅ Fast, offline access                                         │
-│     ❌ Need to install Node, npm, dependencies                      │
-│                                                                     │
-│  2️⃣ CODESPACE IN BROWSER                                           │
-│     VSCode running in your web browser                             │
-│     Files stored: /workspaces/project/ (in cloud)                  │
-│     Copilot config: /home/codespace/.copilot/                      │
-│     ✅ No installation needed, works anywhere                       │
-│     ❌ Requires internet, some browser lag                          │
-│                                                                     │
-│  3️⃣ LOCAL VSCODE → CODESPACE (BEST OF BOTH! ⭐)                    │
-│     VSCode on your Windows machine, connected to cloud Linux       │
-│     Files stored: /workspaces/project/ (in cloud)                  │
-│     Copilot config: /home/codespace/.copilot/                      │
-│     ✅ Local VSCode performance + cloud Linux environment           │
-│     ✅ No dependency installation on Windows                        │
-│     ✅ Best keyboard shortcuts, clipboard, themes                   │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-**Recommended Workflow for Beginners:**
-1. Use **Option 3** (Local VSCode → Codespace) as your primary environment
-2. Use `.github/copilot-instructions.md` for team configuration (auto-loads everywhere)
-3. Optionally set up personal config if you want custom preferences
-
-**This Section Covers:**
-- ✅ How to connect local VSCode to Codespaces (detailed walkthrough)
-- ✅ How to switch between environments seamlessly
-- ✅ How to keep Copilot config synchronized
-- ✅ How to troubleshoot common issues
-- ✅ Best practices for cross-platform development
-
-### COMPLETE BEGINNER'S QUICK START (5 MINUTES)
-
-**Never Used Codespaces or Copilot Before? Start Here!**
-
-**🎯 Goal**: Get up and running with the best development setup in 5 minutes.
-
-**What You'll Do:**
-1. Install GitHub Codespaces extension in your local VSCode
-2. Connect to a codespace from your Windows machine
-3. Set up Copilot configuration that works everywhere
-4. Start coding!
-
-**📋 Prerequisites:**
-- [ ] Windows computer with VSCode installed
-- [ ] GitHub account (free is fine)
-- [ ] This repository: `hannahbellesheart/trac.labs.CascadeTRAC`
-- [ ] Internet connection
-
-**🚀 Let's Go!**
-
-**MINUTE 1-2: Install Extension**
-
-1. Open VSCode on your Windows machine
-2. Press `Ctrl+Shift+X` (opens Extensions)
-3. Search: `GitHub Codespaces`
-4. Click "Install" on the official GitHub extension
-5. Click the Account icon (bottom-left) → "Sign in with GitHub"
-6. Authorize in browser when prompted
-
-✅ **Check**: See your GitHub username in bottom-left corner of VSCode
-
-**MINUTE 3-4: Create & Connect to Codespace**
-
-Method A - From VSCode:
-1. Press `Ctrl+Shift+P` (opens command palette)
-2. Type: `Codespaces: Create New Codespace`
-3. Select repository: `hannahbellesheart/trac.labs.CascadeTRAC`
-4. Select branch: `main`
-5. Wait 30-60 seconds... VSCode automatically connects!
-
-Method B - From GitHub Website (easier):
-1. Go to github.com/hannahbellesheart/trac.labs.CascadeTRAC
-2. Click green "Code" button
-3. Click "Codespaces" tab
-4. Click "Create codespace on main"
-5. When it opens in browser, click ☰ menu → "Open in VS Code Desktop"
-6. Allow the prompt, and local VSCode launches connected!
-
-✅ **Check**: Bottom-left corner shows "Codespaces: [name]"
-
-**MINUTE 5: Set Up Copilot Config**
-
-In your connected VSCode terminal (press `Ctrl+``):
-
-```bash
-# Verify you're in the codespace
-pwd
-# Should show: /workspaces/trac.labs.CascadeTRAC
-
-# Create Copilot configuration
-mkdir -p .github
-cat > .github/copilot-instructions.md << 'EOF'
-# Copilot Instructions for This Project
-
-## Build & Test
-- Build: npm run build
-- Test: npm test
-- Dev server: npm run dev
-
-## Project Info
-This is the trac.labs.CascadeTRAC project.
-EOF
-
-# Commit so it's available everywhere
-git add .github/
-git commit -m "Add Copilot configuration"
-git push
-```
-
-✅ **Check**: File `.github/copilot-instructions.md` appears in Explorer
-
-**🎉 YOU'RE DONE!** 
-
-Now you can:
-- Edit files (they're in the Linux codespace)
-- Run commands in terminal (Linux)
-- Use Copilot (loads your `.github/` config automatically)
-- Close VSCode and reconnect anytime
-- Work from any computer by connecting to the same codespace
-
-**Next Steps:**
-- Read "CONNECTING LOCAL VSCODE TO CODESPACES" below for detailed info
-- Explore "COMMON WORKFLOWS" for day-to-day usage patterns
-- Check "TROUBLESHOOTING" if anything doesn't work
-
-### UNDERSTANDING: WHAT'S ACTUALLY HAPPENING?
-
-**The Concept (Simple Explanation)**
-
-Think of a codespace like this:
-
-```
-Your Windows Machine                    GitHub's Cloud
-┌──────────────────┐                   ┌──────────────────┐
-│                  │                   │                  │
-│  VSCode Window   │ ←── Internet ───→ │  Linux Container │
-│  (Just the UI)   │                   │  (Your code runs │
-│                  │                   │   here!)         │
-│  - Keyboard      │                   │                  │
-│  - Mouse         │                   │  - Files         │
-│  - Display       │                   │  - Terminal      │
-│  - Clipboard     │                   │  - Processes     │
-│                  │                   │  - Git           │
-└──────────────────┘                   └──────────────────┘
-```
-
-**What This Means:**
-
-1. **Your VSCode is just a "window"** - it displays the UI but doesn't run your code
-2. **Linux container in the cloud** - your files and code actually live here
-3. **Connection is "transparent"** - feels like working locally, but isn't
-4. **Everything Linux** - when you type commands, they run in Linux, not Windows
-
-**Why This Is Powerful:**
-
-✅ **No Windows/Linux conflicts** - Everything runs in Linux (same as production)
-✅ **Same environment as team** - Everyone gets identical setup
-✅ **No "works on my machine"** - If it works in codespace, it works everywhere
-✅ **Pre-configured environment** - Node, npm, tools already installed
-✅ **Accessible anywhere** - Sign in from any computer, your environment is there
-
-**The Connection:**
-
-```
-What's Local (Windows)          What's Remote (Linux Codespace)
-─────────────────────          ──────────────────────────────
-VSCode interface               All your project files
-Your keyboard/mouse            Terminal commands
-Your screen                    npm run dev
-Your clipboard                 Git operations
-VSCode themes                  Running processes
-                              File saves
-                              Copilot reads files from here
-```
-
-### WINDOWS LOCAL ↔️ LINUX CODESPACES
+### OVERVIEW: COPILOT CONFIGURATION ACROSS ENVIRONMENTS
 
 **The Challenge**
-- **Local Windows machine**: Uses VSCode on Windows with paths like `C:\Users\username\.copilot\`
-- **GitHub Codespaces**: Linux container in browser with paths like `/home/codespace/.copilot/`
-- **Goal**: Same Copilot configuration and experience in both environments
+- Different environments have different file system paths
+- Personal config lives in different locations (Windows vs Linux)
+- Need consistent Copilot behavior everywhere
 
-**Understanding Path Differences**
+**The Solution**
+- Use **repository config** (`.github/` or `.trac/`) for team settings (auto-syncs via git)
+- Optionally use **personal config sync** for your preferences (dotfiles or manual)
+
+### PATH DIFFERENCES FOR COPILOT CONFIG
 
 | Component | Windows Local | Linux Codespace | Notes |
 |-----------|---------------|-----------------|-------|
-| Home directory | `C:\Users\username\` | `/home/codespace/` | `~` expands differently |
 | Personal config | `C:\Users\username\.copilot\` | `/home/codespace/.copilot/` | Separate locations |
-| Repository | `C:\Users\username\repos\project\` | `/workspaces/project\` | Different mount points |
-| Separators | `\` (backslash) | `/` (forward slash) | Git handles automatically |
-| Line endings | CRLF (`\r\n`) | LF (`\n`) | Git handles automatically |
-| Env vars | `%USERPROFILE%` | `$HOME` | Shell differences |
+| Repository config | `C:\Users\username\repos\project\.github\` | `/workspaces/project/.github/` | Same files (via git) |
+| Home directory | `C:\Users\username\` | `/home/codespace/` | `~` expands differently |
 
-**Strategy: Repository Config + Personal Sync**
-
-The best approach uses **repository-level config** (committed to git) for team settings and optional **personal config sync** for your preferences.
-
-### CONNECTING LOCAL VSCODE TO CODESPACES
-
-**What You Need to Know**
-
-GitHub Codespaces can be accessed in THREE ways:
-1. **Browser-based VSCode** - Opens in your web browser (simplest, no installation)
-2. **Local VSCode Desktop** - Connect from VSCode on your Windows machine (best performance)
-3. **VSCode Insiders** - Same as desktop but with preview features
-
-**Why Use Local VSCode?**
-✅ Better performance (faster typing, no browser lag)
-✅ Local keyboard shortcuts work perfectly
-✅ Can use any VSCode theme/settings
-✅ Access local clipboard seamlessly
-✅ Works offline after initial connection
-✅ Same familiar VSCode experience
-
-**Step-by-Step: Connect Local VSCode to Codespaces (Beginner Guide)**
-
-#### STEP 1: Install Required Extension (One-Time Setup)
-
-1. **Open VSCode on your Windows machine**
-   - Launch Visual Studio Code
-
-2. **Open Extensions Panel**
-   - Click the Extensions icon in the left sidebar (looks like 4 squares)
-   - OR press `Ctrl+Shift+X`
-
-3. **Search for Extension**
-   - Type: `GitHub Codespaces`
-   - Look for the official extension by GitHub (verified checkmark ✓)
-
-4. **Install the Extension**
-   - Click the blue "Install" button
-   - Wait for installation to complete (usually 10-30 seconds)
-   - You'll see "Reload Required" or it auto-activates
-
-5. **Sign in to GitHub**
-   - Click the Account icon (person silhouette) in the bottom-left corner
-   - Choose "Sign in with GitHub"
-   - Your browser will open asking you to authorize VSCode
-   - Click "Authorize GitHub" or "Continue"
-   - Return to VSCode - you should see your GitHub username in the bottom-left
-
-**Verification**: You should now see a new "Remote Explorer" icon (computer with arrows) in the left sidebar.
-
-#### STEP 2: Create or Connect to a Codespace
-
-**Option A: Create New Codespace from VSCode**
-
-1. **Open Command Palette**
-   - Press `Ctrl+Shift+P` (or `F1`)
-   - This opens a search box at the top
-
-2. **Create Codespace**
-   - Type: `Codespaces: Create New Codespace`
-   - Press Enter
-   
-3. **Select Repository**
-   - Choose your repository: `hannahbellesheart/trac.labs.CascadeTRAC`
-   - If you don't see it, click "Select a repository from GitHub" and search
-
-4. **Select Branch**
-   - Choose: `main` (or your working branch)
-
-5. **Select Machine Type** (if asked)
-   - For most work: "2-core" is fine
-   - For heavy builds: "4-core" or "8-core"
-   - Click to select
-
-6. **Wait for Creation**
-   - VSCode will show "Creating codespace..."
-   - This takes 30 seconds to 2 minutes
-   - When ready, VSCode will automatically connect
-
-**You're now connected!** Your local VSCode is controlling a Linux container in the cloud.
-
-**Option B: Connect to Existing Codespace**
-
-1. **Open Remote Explorer**
-   - Click the "Remote Explorer" icon in left sidebar (computer with arrows)
-   - OR press `Ctrl+Shift+P` and type "Remote Explorer: Focus on GitHub Codespaces View"
-
-2. **View Your Codespaces**
-   - You'll see a list under "GitHub Codespaces"
-   - Shows all your active codespaces
-
-3. **Connect to Codespace**
-   - Find your codespace (e.g., "trac-labs-CascadeTRAC-main-abc123")
-   - Right-click on it
-   - Choose "Connect to Codespace"
-   - OR hover and click the "→" (Connect) icon
-
-4. **Wait for Connection**
-   - VSCode connects to the codespace (5-15 seconds)
-   - When connected, you'll see "Codespaces: [name]" in the bottom-left corner
-
-**You're now connected!** Any files you open/edit are in the codespace (Linux), not your Windows machine.
-
-**Option C: Quick Connect from Browser Codespace**
-
-1. **Open Codespace in Browser First**
-   - Go to github.com/hannahbellesheart/trac.labs.CascadeTRAC
-   - Click "Code" → "Codespaces" → Open existing or create new
-
-2. **Switch to Local VSCode**
-   - In the browser VSCode, click the ☰ menu (top-left)
-   - Choose "Open in VS Code Desktop"
-   - Browser will ask "Open Visual Studio Code?"
-   - Click "Open" or "Allow"
-
-3. **Automatic Connection**
-   - Your local VSCode launches and connects automatically
-   - Takes 5-10 seconds
-
-**You're now connected!**
-
-#### STEP 3: Verify Connection
-
-**Check Your Connection Status**
-
-Look at the **bottom-left corner** of VSCode:
-- ✅ **"Codespaces: [name]"** = Connected to codespace (you're in Linux!)
-- ❌ **Just "Windows"** or nothing = Local Windows machine
-
-**Quick Verification Commands**
-
-Open a terminal in VSCode (`Ctrl+`` or Terminal → New Terminal):
-
-```bash
-# Check what system you're on
-uname -a
-# Should show: "Linux ... codespaces ..."
-
-# Check your location
-pwd
-# Should show: /workspaces/trac.labs.CascadeTRAC
-
-# Check environment
-echo $CODESPACES
-# Should show: true
-
-# Check home directory
-echo $HOME
-# Should show: /home/codespace
-```
-
-If these commands show Linux paths → ✅ You're connected to codespace!
-
-#### STEP 4: Working in Connected Codespace
-
-**Everything Works Like Normal VSCode, BUT...**
-
-✅ **What's Running in the Codespace (Linux)**:
-- All files in the File Explorer
-- Any terminal commands you run
-- Any processes you start (npm, python, etc.)
-- Git operations
-- File saves
-- Extensions installed in the codespace
-
-✅ **What's Running Locally (Windows)**:
-- VSCode interface itself
-- Your keyboard/mouse
-- VSCode settings sync (if enabled)
-- Local clipboard
-
-**Opening and Editing Files**
-
-```bash
-# Everything works exactly like local VSCode!
-
-# Open file
-# File → Open File... or Ctrl+O
-# Browse to any file in `/workspaces/trac.labs.CascadeTRAC/`
-
-# Create new file
-# Right-click in Explorer → New File
-# Type in terminal: touch newfile.ts
-
-# Edit files
-# Just click and type - saves automatically to codespace
-
-# Search files
-# Ctrl+P to quick open
-# Ctrl+Shift+F to search across all files
-```
-
-**Running Commands**
-
-```bash
-# Open terminal: Ctrl+` or Terminal → New Terminal
-
-# Build project
-npm run build
-
-# Run development server
-npm run dev
-
-# Run tests
-npm test
-
-# Install packages
-npm install packagename
-
-# Git operations
-git status
-git add .
-git commit -m "Your message"
-git push
-```
-
-**Using Copilot in the Codespace**
-
-```bash
-# Copilot automatically loads repository config!
-# Open Copilot Chat: Ctrl+Shift+I or click chat icon
-
-# Verify config is loaded
-# Ask Copilot: "What are the build commands for this project?"
-# It should reference .github/copilot-instructions.md
-
-# Check active instructions
-# In Copilot response, look for "References" section
-# Should show which instruction files were used
-```
-
-#### STEP 5: Disconnecting from Codespace
-
-**When You're Done Working**
-
-**Option 1: Keep Codespace Running (Recommended)**
-- Just close VSCode window (X button)
-- Codespace stays active for 30 minutes of inactivity
-- Can reconnect anytime and continue where you left off
-- Files and processes remain intact
-
-**Option 2: Stop Codespace (Save Resources)**
-1. Press `Ctrl+Shift+P`
-2. Type: `Codespaces: Stop Current Codespace`
-3. Press Enter
-4. Codespace stops (but doesn't delete)
-5. Can restart later - all files preserved
-
-**Option 3: Delete Codespace (Clean Up)**
-1. Open Remote Explorer (left sidebar)
-2. Find your codespace in the list
-3. Right-click → "Delete Codespace"
-4. Confirm deletion
-5. **Warning**: All uncommitted changes are lost!
-
-**Important**: Always commit and push your changes before deleting a codespace!
-
-```bash
-# Before stopping/deleting, save your work:
-git add .
-git commit -m "Work in progress"
-git push
-```
-
-#### STEP 6: Reconnecting Later
-
-**Next Time You Want to Work**
-
-1. **Open VSCode on Windows**
-2. **Open Remote Explorer** (Ctrl+Shift+P → "Remote Explorer")
-3. **Find Your Codespace** in the list
-4. **Connect**: Right-click → "Connect to Codespace"
-5. **Continue Working** - everything is exactly as you left it!
-
-If you deleted the codespace, create a new one (Step 2 above).
-
-### COMMON WORKFLOWS: LOCAL VSCODE + CODESPACES
-
-**Workflow 1: Daily Development**
-
-```bash
-# Morning: Start work
-1. Open VSCode on Windows
-2. Ctrl+Shift+P → "Codespaces: Connect to Codespace"
-3. Select your codespace from list
-4. Start coding!
-
-# During day: Edit, test, commit
-5. Edit files in VSCode
-6. Run commands in terminal
-7. Test your changes
-8. Commit: git add . && git commit -m "Feature X"
-9. Push: git push
-
-# Evening: Finish work
-10. Make sure everything is committed and pushed
-11. Close VSCode (codespace auto-stops after 30 min)
-12. OR manually stop: Ctrl+Shift+P → "Stop Current Codespace"
-```
-
-**Workflow 2: Switch Between Local and Codespace**
-
-```bash
-# Working locally on Windows
-1. Edit files in local VSCode
-2. Commit changes: git commit -am "Local changes"
-3. Push: git push
-
-# Switch to codespace
-4. Ctrl+Shift+P → "Codespaces: Connect to Codespace"
-5. In terminal: git pull
-6. Continue working with your changes!
-
-# Switch back to local
-7. Commit in codespace: git commit -am "Codespace changes"
-8. Push: git push
-9. Disconnect from codespace (close or stop)
-10. In local VSCode: git pull
-11. Continue working locally!
-```
-
-**Workflow 3: Multiple Codespaces for Different Features**
-
-```bash
-# Create codespace for feature A
-1. Ctrl+Shift+P → "Create New Codespace"
-2. Select branch: feature-a
-3. Work on feature A
-4. Commit, but don't delete codespace yet
-
-# Create another codespace for feature B
-5. Ctrl+Shift+P → "Create New Codespace"
-6. Select branch: feature-b
-7. Work on feature B
-
-# Switch between them
-8. Open Remote Explorer
-9. See both codespaces listed
-10. Click to switch between them instantly!
-11. Each has its own files, processes, terminal history
-```
-
-### TROUBLESHOOTING VSCODE + CODESPACES CONNECTION
-
-| Problem | Solution |
-|---------|----------|
-| **"Can't find GitHub Codespaces extension"** | Search for "GitHub Codespaces" (not "Codespaces"). Make sure you're signed into VSCode with GitHub account. |
-| **"No codespaces appear in list"** | Click refresh icon in Remote Explorer. Make sure you're signed in (check bottom-left corner). |
-| **"Failed to connect to codespace"** | Codespace might be stopped. Right-click → "Start Codespace" first. Check internet connection. |
-| **"Extension not working"** | Reload VSCode (`Ctrl+Shift+P` → "Reload Window"). Check extension is enabled. Update extension to latest version. |
-| **"Shows local files instead of codespace files"** | Check bottom-left corner - should say "Codespaces: [name]". If not, not connected. Try connecting again. |
-| **"Terminal commands don't work"** | Make sure you're in a terminal (Ctrl+`). Verify you're connected (bottom-left shows "Codespaces"). |
-| **"Changes not saving"** | File might be open in browser codespace too. Close browser tab. Check file permissions in terminal: `ls -la filename`. |
-| **"Can't commit/push"** | Configure git if first time: `git config --global user.email "you@example.com"` and `git config --global user.name "Your Name"` |
-| **"Copilot not working in codespace"** | Copilot extension must be installed in codespace (not just locally). Open Extensions, search "GitHub Copilot", click "Install in Codespace". |
-| **"Slow performance/lag"** | Check internet connection. Browser codespace might be better on slow connections. Try stopping/restarting codespace. |
-
-### UNDERSTANDING: WHERE AM I WORKING?
-
-**Visual Indicators**
-
-```
-Bottom-Left Corner Shows:
-┌────────────────────────────────┐
-│ "Codespaces: trac-...abc123"   │  ← You're in a codespace (Linux)
-└────────────────────────────────┘
-
-OR
-
-┌────────────────────────────────┐
-│ Nothing or "Windows"            │  ← You're on local Windows machine
-└────────────────────────────────┘
-```
-
-**Quick Check Command**
-
-```bash
-# In any terminal, run:
-pwd && echo "Home: $HOME" && uname -a
-
-# Local Windows (Git Bash):
-# /c/Users/username/repos/project
-# Home: /c/Users/username
-# MINGW64 or MSYS
-
-# Codespace (Linux):
-# /workspaces/trac.labs.CascadeTRAC
-# Home: /home/codespace
-# Linux ... codespaces ...
-```
-
-**File Path Tells You Too**
-
-When you open a file, look at the tab:
-- `/workspaces/trac.labs.CascadeTRAC/file.ts` → Codespace
-- `C:\Users\username\repos\project\file.ts` → Local Windows
-
-### TIPS FOR EFFICIENT CODESPACES USE
-
-**💡 Pro Tips**
-
-1. **Name Your Codespaces**
-   - When creating, add a display name
-   - Makes it easy to identify multiple codespaces
-
-2. **Use Branch-Specific Codespaces**
-   - Create one codespace per feature branch
-   - Switch between them without switching branches
-
-3. **Keep Repository Config**
-   - Always use `.github/copilot-instructions.md`
-   - Auto-loads in any codespace, any time
-
-4. **Commit Often**
-   - Codespaces can be deleted accidentally
-   - Committed work is safe on GitHub
-
-5. **Stop When Not Using**
-   - Codespaces count against your free hours
-   - Stop them when taking breaks
-
-6. **Install Extensions in Codespace**
-   - Some extensions need to be "installed in codespace"
-   - Look for "Install in Codespace" button in Extensions panel
-
-7. **Use Port Forwarding**
-   - When you run a dev server (localhost:3000)
-   - VSCode automatically forwards ports
-   - Click the notification to open in browser
-
-8. **Check Your Quota**
-   - GitHub.com → Settings → Billing → Codespaces
-   - See how many hours you've used
-   - Free tier: 120 core-hours/month (60 hours on 2-core)
+**Key Insight**: Repository config (`.github/` or `.trac/`) automatically works in BOTH environments because it's committed to git. Personal config requires sync.
 
 ### SETUP APPROACH 1: REPOSITORY CONFIG ONLY (EASIEST)
 
@@ -2419,7 +1457,7 @@ git push
 ✅ **Windows Local**: Open VSCode → Pull latest → Copilot loads `.github/` automatically
 ✅ **Codespaces**: Create/open codespace → Copilot loads `.github/` automatically
 
-**Result**: Same configuration everywhere, zero additional setup needed!
+**Result**: Same Copilot configuration everywhere, zero additional setup needed!
 
 ### SETUP APPROACH 2: PERSONAL CONFIG SYNC (ADVANCED)
 
@@ -2484,24 +1522,11 @@ EOF
 
 chmod +x install.sh
 
-# Create README
-cat > README.md << 'EOF'
-# My Dotfiles
-
-Personal configuration including Copilot settings.
-
-## What's Included
-- Copilot personal instructions
-- Copilot personal agents
-- Copilot personal skills
-EOF
-
 # Initialize git and push
 git init
 git add .
 git commit -m "Initial dotfiles with Copilot config"
 gh repo create dotfiles --public --source=. --push
-# OR manually create repo on GitHub and push
 ```
 
 **Step 2: Configure GitHub to Use Dotfiles**
@@ -2514,134 +1539,120 @@ gh repo create dotfiles --public --source=. --push
 **Step 3: Use in Codespaces**
 
 ✅ Every new codespace automatically runs your install script
-✅ Your personal config is available immediately
+✅ Your personal Copilot config is available immediately
 
-**Option B: Manual Sync with Git**
-
-Keep personal config in a private repository and clone manually.
-
-```bash
-# Setup (one time per environment)
-
-# === In Windows Local ===
-# Create personal config
-$env:USERPROFILE\.copilot\copilot-instructions.md
-# Edit your personal preferences
-
-# Create private repo for personal config
-cd $env:USERPROFILE
-git init copilot-config
-cd copilot-config
-cp -r $env:USERPROFILE\.copilot\* .
-git add .
-git commit -m "Personal Copilot config"
-gh repo create copilot-config --private --source=. --push
-
-# === In Codespaces ===
-# Clone your personal config
-cd ~
-gh repo clone username/copilot-config
-cp -r ~/copilot-config/* ~/.copilot/
-
-# Done! Personal config now active in codespace
-```
-
-**Option C: Simple File Copy (Quick & Manual)**
+**Option B: Manual Sync**
 
 For quick one-time setup or testing.
 
 ```powershell
 # === On Windows Local ===
-# Export your config to repository
-cd C:\Users\username\repos\trac.labs.CascadeTRAC
-mkdir -p .copilot-sync
-cp -r $env:USERPROFILE\.copilot\copilot-instructions.md .copilot-sync\
-# DON'T commit - add to .gitignore
-echo ".copilot-sync/" >> .gitignore
-
-# Upload to temporary location
-# Option 1: gh gist
-gh gist create .copilot-sync/copilot-instructions.md --public
-
-# Option 2: Copy-paste to GitHub Gist manually
-# Visit https://gist.github.com/ and paste content
+# Export your config
+gh gist create $env:USERPROFILE\.copilot\copilot-instructions.md --public
+# Note the gist ID
 ```
 
 ```bash
 # === In Codespaces ===
 # Download your config
 mkdir -p ~/.copilot
-cd ~/.copilot
-
-# Option 1: Download from gist
-gh gist view GIST_ID --raw > copilot-instructions.md
-
-# Option 2: If you have SSH access to your Windows machine
-scp username@your-ip:C:/Users/username/.copilot/copilot-instructions.md ~/.copilot/
-
-# Option 3: Copy-paste content manually via GitHub Gist
-curl https://gist.githubusercontent.com/username/GIST_ID/raw/... > copilot-instructions.md
+gh gist view GIST_ID --raw > ~/.copilot/copilot-instructions.md
 ```
 
-### SWITCHING BETWEEN ENVIRONMENTS
+### VERIFICATION: CHECK COPILOT CONFIG LOADING
+
+**In Any Environment (Windows, Codespaces, Linux)**
+
+```bash
+# Check repository config exists
+ls -la .github/copilot-instructions.md
+
+# Check personal config exists (if using)
+ls -la ~/.copilot/copilot-instructions.md
+
+# Check custom directory config (if using)
+echo $COPILOT_CUSTOM_INSTRUCTIONS_DIRS
+ls -la ~/.trac/copilot-instructions.md  # If using personal TRAC
+ls -la .trac/copilot-instructions.md    # If using repository TRAC
+
+# Test in Copilot Chat
+# Open Copilot Chat and ask:
+# "What are the build commands for this project?"
+# Check "References" in response - should show which instruction files were used
+```
+
+### SWITCHING COPILOT CONFIG BETWEEN ENVIRONMENTS
 
 **From Windows Local → Codespaces**
 
 ```bash
-# On Windows Local - Make sure everything is committed
-git add .
-git commit -m "WIP: Current work"
-git push
+# Copilot repository config automatically available (via git)
+# Personal config requires dotfiles or manual sync (see above)
 
-# Open GitHub repository in browser
-# Click "Code" → "Codespaces" → "Create codespace" or open existing
-
-# In Codespaces (opens automatically in browser)
-# Repository is automatically cloned
-# .github/ config is automatically available
-# Personal config (if using dotfiles) is automatically installed
-# Continue working!
+# Verify in codespace:
+ls -la .github/copilot-instructions.md  # Should exist
+ls -la ~/.copilot/copilot-instructions.md  # May or may not exist
 ```
 
 **From Codespaces → Windows Local**
 
 ```bash
-# In Codespaces - Commit your work
-git add .
-git commit -m "WIP: Current work"
-git push
+# Copilot repository config automatically available (via git pull)
+# Personal config is separate on each machine
 
-# On Windows Local - Open VSCode
-# Pull latest changes
-git pull
-
-# Continue working!
+# Verify on Windows:
+# Repository config: automatically synced via git
+# Personal config: stays on Windows machine
 ```
 
-**Quick Switch Commands**
+### RECOMMENDED APPROACH FOR COPILOT
 
-```bash
-# === Check what environment you're in ===
-uname -a  # Linux/Codespaces: 'Linux'  Windows: command not found (use PowerShell)
-echo $HOME  # Linux: /home/codespace  Windows: C:\Users\username
-echo $CODESPACES  # Codespaces: 'true'  Local: (empty)
+**For Most Users:**
 
-# === Verify Copilot config location ===
-# Works in both environments
-ls -la ~/.copilot/copilot-instructions.md  # Personal config
-ls -la .github/copilot-instructions.md      # Repo config
-echo $COPILOT_CUSTOM_INSTRUCTIONS_DIRS      # Custom dirs
+1. **Use `.github/` for everything team-wide** ✅
+   - Zero setup required
+   - Works automatically everywhere
+   - Team gets same Copilot experience
 
-# === Quick sync check (in any environment) ===
-git status  # Check for uncommitted changes
-git log --oneline -1  # Check latest commit
-```
+2. **Use dotfiles IF you want personal Copilot preferences synced** (optional)
+   - Setup once: create dotfiles repo with install script
+   - Configure in GitHub settings
+   - Automatically works in new codespaces
 
-### ENVIRONMENT-SPECIFIC CONFIGURATIONS
+3. **Skip personal config sync IF you don't need it**
+   - Repository Copilot config is usually enough
+   - Less complexity
 
-Sometimes you need different settings per environment.
+**Simple Rule**: If everyone should have it → `.github/`. If only you need it → personal config.
 
-**Using Environment Detection**
+### TROUBLESHOOTING COPILOT ACROSS PLATFORMS
+
+| Problem | Solution |
+|---------|----------|
+| "Copilot not working in codespace" | Copilot extension must be installed in codespace. Extensions → "GitHub Copilot" → "Install in Codespace" |
+| "Repository instructions work locally but not in Codespaces" | Check `.github/` is committed and pushed. Pull in codespace: `git pull` |
+| "Personal config not syncing" | Verify dotfiles repo is set in GitHub codespace settings. Check install script ran. |
+| "Config works in Codespaces but not locally" | Verify repository config is pulled locally: `git pull`. Check personal config exists if needed. |
+| "Different suggestions in different environments" | Different instruction files being loaded. Check "References" in Copilot response. |
+| "Custom .trac/ directory not working" | Verify `COPILOT_CUSTOM_INSTRUCTIONS_DIRS` environment variable is set correctly |
+
+### COPILOT-SPECIFIC BEST PRACTICES
+
+**✅ DO: Put in Repository (`.github/` or `.trac/`)**
+- Project build/test commands for Copilot
+- Project structure documentation
+- Team coding standards
+- Project-specific agents
+- Project-specific skills
+- MCP setup workflows
+
+**❌ DON'T: Put in Repository**
+- Personal Copilot preferences
+- Personal API keys for MCP servers
+- Personal agent definitions
+- Personal ~/.copilot/ files
+
+**✅ DO: Document Platform Differences in Instructions**
 
 ```markdown
 <!-- In .github/copilot-instructions.md -->
@@ -2651,282 +1662,10 @@ Sometimes you need different settings per environment.
 
 **Windows Local**: Use `npm.cmd` or ensure Node is in PATH
 - Build: `npm run build`
-- Test: `npm test`
 
 **Linux/Codespaces**: Standard npm commands
 - Build: `npm run build`
-- Test: `npm test`
-
-## Path Conventions
-- Use forward slashes `/` in code (works everywhere)
-- Git handles line ending conversions automatically
-- Use relative paths: `./src/file.ts` not `C:\...\file.ts`
 ```
-
-**Conditional Setup in Dotfiles**
-
-```bash
-# In ~/dotfiles/install.sh
-#!/bin/bash
-
-# Detect environment
-if [ "$CODESPACES" = "true" ]; then
-  echo "Setting up for GitHub Codespaces..."
-  export COPILOT_THEME="dark"
-  export COPILOT_MODEL="claude-sonnet-4"
-elif [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "win32" ]]; then
-  echo "Setting up for Windows..."
-  export COPILOT_THEME="light"
-else
-  echo "Setting up for Linux..."
-  export COPILOT_THEME="dark"
-fi
-
-# Common setup
-mkdir -p ~/.copilot
-cp -r ~/dotfiles/copilot/* ~/.copilot/
-```
-
-### TROUBLESHOOTING CROSS-PLATFORM ISSUES
-
-| Problem | Solution |
-|---------|----------|
-| "Config works locally but not in Codespaces" | Check `.github/` is committed and pushed. Pull in codespace. |
-| "Personal config not syncing" | Verify dotfiles repo is set in GitHub settings. Check install script. |
-| "Path not found errors" | Use relative paths. Avoid `C:\` hardcoded paths. |
-| "Line ending issues" | Git should auto-convert. Check `.gitattributes` has `* text=auto` |
-| "Env var not set in Codespaces" | Add to dotfiles `install.sh` or `.bashrc`. Check with `echo $VAR` |
-| "Instructions not loading" | Verify file exists: `ls -la .github/copilot-instructions.md` |
-| "Different tools installed" | Document requirements in `.github/copilot-instructions.md` |
-| "Can't find agent/skill" | Check files committed to repo. Personal agents only work with dotfiles sync |
-
-### BEST PRACTICES FOR HYBRID WORKFLOW
-
-**✅ DO: Put in Repository (`.github/` or `.trac/`)**
-- Project build/test commands
-- Project structure documentation
-- Team coding standards
-- Project-specific agents
-- Project-specific skills
-- MCP setup workflows
-
-**❌ DON'T: Put in Repository**
-- Personal preferences (indentation, quotes, etc.)
-- Personal API keys or tokens
-- Personal agent definitions
-- Machine-specific paths (`C:\Users\...`)
-
-**✅ DO: Use Dotfiles for Personal Config**
-- Personal coding style preferences
-- Personal keyboard shortcuts
-- Personal Copilot agents (for all your projects)
-- Personal skills
-- Personal .bashrc, .zshrc, etc.
-
-**✅ DO: Use Relative Paths**
-```typescript
-// ✅ Good - works everywhere
-import { helper } from './utils/helper';
-const configPath = path.join(__dirname, 'config.json');
-
-// ❌ Bad - breaks in different environments
-import { helper } from 'C:\Users\me\project\utils\helper';
-const configPath = 'C:\Users\me\project\config.json';
-```
-
-**✅ DO: Document Platform Differences**
-```markdown
-<!-- In copilot-instructions.md -->
-## Platform-Specific Notes
-
-### Windows Local Development
-- Install Node.js from nodejs.org
-- Use Git Bash or PowerShell
-- VS Code: Install "Remote Development" extension
-
-### GitHub Codespaces
-- Node.js pre-installed
-- Uses bash by default
-- VS Code in browser or desktop with Remote-Codespaces
-```
-
-### QUICK START: WINDOWS + CODESPACES WORKFLOW
-
-**Complete Setup (5 minutes)**
-
-```bash
-# === 1. Setup Repository Config (Do Once) ===
-# Can do in Windows OR Codespaces, doesn't matter
-
-# Create repository config
-mkdir -p .github/agents .github/skills
-echo "# Project Copilot Instructions" > .github/copilot-instructions.md
-# Edit .github/copilot-instructions.md with project info
-
-git add .github/
-git commit -m "Add Copilot config"
-git push
-
-# === 2. (Optional) Setup Personal Config Sync ===
-# If you want your personal preferences in both places
-
-# Quick method: Create gist with personal config
-gh gist create ~/.copilot/copilot-instructions.md --public
-# Save the gist URL
-
-# In other environment:
-mkdir -p ~/.copilot
-gh gist view GIST_ID --raw > ~/.copilot/copilot-instructions.md
-
-# === 3. Daily Workflow ===
-# Work on Windows: edit, commit, push
-# Switch to Codespaces: your commits are there
-# Work in Codespaces: edit, commit, push
-# Switch to Windows: pull changes, continue
-```
-
-**Verification Checklist**
-
-✅ Repository config committed and pushed
-```bash
-git log --oneline | grep -i copilot
-ls -la .github/copilot-instructions.md
-```
-
-✅ Config loads in Windows
-```powershell
-# Open VSCode
-# Open Copilot Chat
-# Send: "What are the build commands for this project?"
-# Should reference .github/copilot-instructions.md
-```
-
-✅ Config loads in Codespaces
-```bash
-# Open or create codespace
-# Open Copilot Chat
-# Send: "What are the build commands for this project?"
-# Should reference .github/copilot-instructions.md
-```
-
-✅ Personal config synced (if using)
-```bash
-# In both environments
-cat ~/.copilot/copilot-instructions.md
-# Should show same content
-```
-
-### RECOMMENDED APPROACH
-
-For most users working between Windows and Codespaces:
-
-1. **Use `.github/` for everything team-wide** ✅
-   - Zero setup required
-   - Works automatically everywhere
-   - Team gets same experience
-
-2. **Use dotfiles IF you want personal sync** (optional)
-   - Setup once: create dotfiles repo with install script
-   - Configure in GitHub settings
-   - Automatically works in new codespaces
-
-3. **Skip personal config sync IF you don't need it**
-   - Repository config is usually enough
-   - Less complexity
-   - Fewer things to maintain
-
-**Simple Rule**: If everyone on the team should have it → `.github/`. If only you need it → personal config.
-
-### FREQUENTLY ASKED QUESTIONS (FAQ)
-
-**Q1: Do I need to install Node.js/npm on my Windows machine to use codespaces?**
-**A**: NO! That's the beauty of codespaces. Everything is pre-installed in the Linux container. Your Windows machine only needs VSCode and the GitHub Codespaces extension. Just connect and start coding.
-
-**Q2: If I edit files in local VSCode connected to a codespace, where are the files actually stored?**
-**A**: In the Linux codespace (cloud), NOT on your Windows machine. When you connect, VSCode shows you the remote files. All saves go to the codespace. Your Windows machine is just displaying them.
-
-**Q3: What happens to my work if I close VSCode while connected to a codespace?**
-**A**: Your work is safe! The codespace stays running for 30 minutes after you disconnect. Your files, terminal sessions, running processes - everything stays intact. Just reconnect and continue.
-
-**Q4: Can I work on the same repository both locally (Windows) AND in a codespace?**
-**A**: YES! This is common. Strategy:
-1. Work locally: edit, commit, push
-2. Work in codespace: pull, edit, commit, push
-3. Keep git commits synchronized
-4. `.github/copilot-instructions.md` works in both places automatically
-
-**Q5: Do I need to configure Copilot twice (once locally, once in codespace)?**
-**A**: NO! Use `.github/copilot-instructions.md` - it auto-loads in BOTH local VSCode AND codespaces. One config, works everywhere.
-
-**Q6: Can multiple people work in the same codespace?**
-**A**: NO. Each codespace is personal to you. But everyone can have the same configuration by using the same repository `.github/` files.
-
-**Q7: What happens if I delete a codespace? Do I lose my work?**
-**A**: IF you committed and pushed, NO - your work is safe on GitHub. IF you didn't commit, YES - uncommitted changes are lost. **Always commit before deleting!**
-
-**Q8: How much does using codespaces cost?**
-**A**: GitHub Free tier gives you 120 core-hours/month free. With a 2-core machine, that's 60 hours of use. For most developers, this is enough. Check usage at: github.com → Settings → Billing → Codespaces
-
-**Q9: Can I use my local VSCode extensions in a codespace?**
-**A**: SOME extensions work automatically, SOME need to be "installed in codespace". When you first connect, VSCode may prompt to install extensions in the codespace. Click "Install". OR manually: Extensions panel → find extension → "Install in Codespace" button.
-
-**Q10: Why does Copilot show different suggestions in codespace vs local Windows?**
-**A**: If you're using different instruction files:
-- Local Windows might read: `C:\Users\...\.copilot\copilot-instructions.md`
-- Codespace reads: `/home/codespace/.copilot/copilot-instructions.md` + `.github/copilot-instructions.md`
-Solution: Use `.github/copilot-instructions.md` (works in both)
-
-**Q11: Can I run a development server (like `npm run dev`) in codespace and view it in my Windows browser?**
-**A**: YES! VSCode automatically forwards ports. When you run a server, you'll see a notification: "Your application running on port 3000 is available." Click it to open in your browser. Works seamlessly.
-
-**Q12: What if I'm on slow internet? Will codespaces be laggy?**
-**A**: Local VSCode → Codespace works well even on slower connections because only small amounts of data are sent (your keystrokes, file changes). Browser-based codespace might be laggier. For very slow connections, working fully local might be better.
-
-**Q13: Can I copy-paste between my Windows machine and the codespace?**
-**A**: YES! Clipboard works transparently. Copy on Windows, paste in codespace terminal - it just works. Same in reverse.
-
-**Q14: What's the difference between "Codespaces" in browser and "Local VSCode connected to Codespaces"?**
-**A**: 
-- **Browser**: VSCode runs IN the browser. Slightly laggy, no local themes/settings.
-- **Local VSCode**: VSCode runs on your Windows machine, connected remotely. Faster, better shortcuts, local settings.
-Both are using the SAME Linux container for your code.
-
-**Q15: If I commit files in the codespace, do they appear in my local Windows git?**
-**A**: YES, after you `git push` from codespace and `git pull` on local Windows. Git synchronizes everything via GitHub.
-
-**Q16: Can I switch branches in a codespace?**
-**A**: YES, just like normal git: `git checkout branch-name`. OR create a separate codespace for each branch (recommended for parallel work).
-
-**Q17: How do I know if I'm connected to a codespace or working locally?**
-**A**: Look at **bottom-left corner** of VSCode:
-- Shows "Codespaces: [name]" → Connected to codespace
-- Shows nothing or "Windows" → Working locally on Windows
-
-**Q18: Do files in `.github/` get committed to git?**
-**A**: YES! That's the point. `.github/copilot-instructions.md` should be committed so it works for everyone. BUT `~/.copilot/` files should NEVER be committed (they're in your home directory, not the repo).
-
-**Q19: Can I use the codespace CLI directly from Windows terminal?**
-**A**: NO, not directly. The Linux terminal is in the cloud. You access it through:
-1. VSCode terminal (Ctrl+` when connected)
-2. GitHub CLI: `gh codespace ssh` (connects you to the codespace)
-
-**Q20: What if I want to work on a different repository?**
-**A**: Create a new codespace for that repository! You can have multiple codespaces from different repos. Switch between them in the Remote Explorer panel.
-
-**Q21: Is my `.github/copilot-instructions.md` private or public?**
-**A**: Follows your repository visibility. Private repo = private config. Public repo = public config. Don't put secrets in instruction files!
-
-**Q22: Can I use `.trac/` instead of `.github/` in codespaces?**
-**A**: YES, but you need to set `COPILOT_CUSTOM_INSTRUCTIONS_DIRS="$PWD/.trac"` in the codespace. Easier to just use `.github/` which works automatically everywhere.
-
-**Q23: What happens if I accidentally edit files in both places without pushing?**
-**A**: You'll have a merge conflict. When you push from one place and pull from another, git will ask you to resolve the conflict. Best practice: Always push after committing, pull before starting work.
-
-**Q24: Can I debug Node.js/Python/etc. applications in a codespace?**
-**A**: YES! Full debugging works. Press F5 or use Run & Debug panel. Breakpoints, variable inspection, everything works just like local debugging.
-
-**Q25: How do I delete all my codespaces at once?**
-**A**: GitHub.com → Settings → Codespaces → Click "..." on any codespace → "Delete" (repeat for each). OR use GitHub CLI: `gh codespace delete --all`
 
 ## COMPLETE QUICK REFERENCE
 
@@ -3190,4 +1929,3 @@ Both are using the SAME Linux container for your code.
 - Update build/test commands if changed
 - Update deployment procedures
 - Add migration notes for breaking changes
-3192=905+1931+188
